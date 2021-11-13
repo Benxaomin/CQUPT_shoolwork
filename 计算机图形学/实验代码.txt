@@ -1,0 +1,136 @@
+#include <GL/glut.h>
+#include <stdlib.h>
+
+
+//自定义初始化opengl函数
+float mouseX, mouseY; //定义全局变量，保存鼠标上一时刻的坐标
+bool mouseLeftDown, mouseRightDown;//保存鼠标左键或右键按下去的状态
+float cameraDistanceX, cameraDistanceY;//平移量
+float cameraAngleX, cameraAngleY;//定义全局变量X方向旋转角度，Y方向旋转角度
+void init(void)
+{
+    //定义镜面光成分
+    GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };  //镜面反射参数
+    GLfloat mat_shininess[] = { 100.0 };               //材料光泽度
+    GLfloat light_position[] = { 0, 5.0, 10.0, 1.0 };//灯位置(1,1,1), 最后1-开关
+    GLfloat white_light[] = { 0.692, 0.295, 0.312, 1.0 };   
+    GLfloat Light_Ambient[] = { 1.0, 1.0, 1.0, 1.0 }; //环境光参数
+
+    glClearColor(0.0, 0.0, 0.0, 0.0);  //背景色0
+    glShadeModel(GL_SMOOTH);           //多变性填充模式
+
+    //物体前面接受光照
+    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+
+    //设置光源属性
+    glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, white_light);   //漫反射光属性
+    glLightfv(GL_LIGHT0, GL_SPECULAR, mat_specular);  //镜面反射光
+    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, Light_Ambient);  //环境光参数
+
+    glEnable(GL_LIGHTING);   //开关:使用光
+    glEnable(GL_LIGHT0);     //打开0#灯
+    glEnable(GL_DEPTH_TEST); //打开深度测试
+}
+void mouseClick(int button, int state, int x, int y)
+{
+    mouseX = x; mouseY = y;//保存当前鼠标坐标x,y至mouseX，mouseY
+    switch (button)
+    {
+    case GLUT_LEFT_BUTTON:
+        if (state == GLUT_DOWN)
+        {
+            mouseLeftDown = true;
+        }
+        else if (state == GLUT_UP)
+        {
+            mouseLeftDown = false;
+        }
+        break;
+    case GLUT_RIGHT_BUTTON:
+        if (state == GLUT_DOWN)
+        {
+            mouseRightDown = true;
+        }
+        else if (state == GLUT_UP)
+        {
+            mouseRightDown = false;
+        }
+        break;
+    default:
+        break;
+    }
+}
+void mouseMotion(int x, int y)
+{
+    cameraAngleX = cameraAngleY = 0;
+    cameraDistanceX = cameraDistanceY = 0;
+    if (mouseLeftDown)
+    {
+        cameraAngleY += (x - mouseX);
+        cameraAngleX += (y - mouseY);
+        mouseX = x;
+        mouseY = y;
+    }
+    if (mouseRightDown)
+    {
+        cameraDistanceX += (x - mouseX) * 0.0065f;
+        cameraDistanceY += -(y - mouseY) * 0.0065f;
+        mouseX = x;
+        mouseY = y;
+    }
+    glutPostRedisplay();
+}
+
+
+void display(void)
+{
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glTranslatef(cameraDistanceX, cameraDistanceY, 0);
+    glRotatef(cameraAngleX, 1, 0, 0);
+    glRotatef(cameraAngleY, 0, 1, 0);
+    glutSolidTeapot(0.25);
+    glFlush();   //glSwapBuffers();
+}
+
+void reshape(int w, int h)
+{
+    glViewport(0, 0, (GLsizei)w, (GLsizei)h);
+
+    //设置投影参数
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    //正交投影
+    if (w <= h)
+        glOrtho(-1.5, 1.5, -1.5 * (GLfloat)h / (GLfloat)w, 1.5 * (GLfloat)h / (GLfloat)w, -10.0, 10.0);
+    else
+        glOrtho(-1.5 * (GLfloat)w / (GLfloat)h, 1.5 * (GLfloat)w / (GLfloat)h, -1.5, 1.5, -10.0, 10.0);
+
+    //设置模型参数--几何体参数
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+}
+
+void WindowsInit()
+{
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
+    glutInitWindowSize(480, 480);
+    glutInitWindowPosition(100, 100);
+    glutCreateWindow("实验一&实验二pinkteapot光照移动");
+}
+
+int main(int argc, char** argv)
+{
+    glutInit(&argc, argv);
+    WindowsInit();
+
+    init();
+
+    glutDisplayFunc(display);
+    glutReshapeFunc(reshape);
+    glutMouseFunc(&mouseClick);
+    glutMotionFunc(&mouseMotion);
+    glutMainLoop();
+    return 0;
+}
